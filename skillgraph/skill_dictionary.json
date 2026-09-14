@@ -1,0 +1,82 @@
+{
+  "Python": ["python", "python3", "cpython"],
+  "JavaScript": ["javascript", "js", "ecmascript", "es6", "es2015"],
+  "TypeScript": ["typescript", "ts"],
+  "Java": ["java"],
+  "SQL": ["sql", "structured query language"],
+  "HTML": ["html", "html5"],
+  "CSS": ["css", "css3"],
+  "Go": ["golang"],
+
+  "FastAPI": ["fastapi", "fast api"],
+  "Django": ["django", "django rest framework", "drf"],
+  "Flask": ["flask"],
+  "React": ["react", "reactjs", "react.js"],
+  "Angular": ["angular", "angularjs", "angular.js"],
+  "Vue.js": ["vue", "vuejs", "vue.js"],
+  "Node.js": ["node", "nodejs", "node.js"],
+  "Express": ["express", "expressjs", "express.js"],
+  "Flutter": ["flutter"],
+  "Spring Boot": ["spring boot", "springboot", "spring"],
+
+  "Docker": ["docker", "dockerfile", "docker-compose"],
+  "Kubernetes": ["kubernetes", "k8s"],
+  "CI/CD": ["ci/cd", "ci cd", "cicd", "continuous integration", "continuous deployment", "continuous delivery"],
+  "GitHub Actions": ["github actions"],
+  "Jenkins": ["jenkins"],
+  "Terraform": ["terraform"],
+  "Ansible": ["ansible"],
+
+  "PostgreSQL": ["postgresql", "postgres"],
+  "MySQL": ["mysql"],
+  "MongoDB": ["mongodb", "mongo"],
+  "Redis": ["redis"],
+  "Elasticsearch": ["elasticsearch", "elastic search", "elastic"],
+  "SQLite": ["sqlite"],
+
+  "Apache Kafka": ["kafka", "apache kafka"],
+  "Apache Spark": ["spark", "apache spark", "pyspark", "spark streaming", "spark structured streaming"],
+  "Apache Airflow": ["airflow", "apache airflow"],
+  "Hadoop": ["hadoop"],
+  "RabbitMQ": ["rabbitmq", "rabbit mq"],
+
+  "AWS": ["aws", "amazon web services"],
+  "GCP": ["gcp", "google cloud", "google cloud platform"],
+  "Azure": ["azure", "microsoft azure"],
+
+  "Git": ["git"],
+  "Linux": ["linux", "ubuntu", "debian", "centos"],
+
+  "REST API": ["rest api", "restful api", "rest apis", "restful apis", "restful", "rest"],
+  "GraphQL": ["graphql", "graph ql"],
+  "gRPC": ["grpc"],
+  "WebSocket": ["websocket", "websockets", "web socket"],
+
+  "OAuth": ["oauth", "oauth2", "oauth 2.0", "oauth2.0"],
+  "Authentication": ["authentication", "user authentication", "auth"],
+  "Third-Party Login": ["social login", "third-party login", "google sign-in", "third-party authentication", "social auth"],
+  "JWT": ["jwt", "json web token", "json web tokens"],
+  "Firebase": ["firebase"],
+
+  "Machine Learning": ["machine learning", "ml"],
+  "Deep Learning": ["deep learning", "dl"],
+  "NLP": ["nlp", "natural language processing"],
+  "Computer Vision": ["computer vision", "cv", "image recognition"],
+  "TensorFlow": ["tensorflow", "tf"],
+  "PyTorch": ["pytorch", "torch"],
+  "scikit-learn": ["scikit-learn", "sklearn", "scikit learn"],
+
+  "Microservices": ["microservices", "microservice", "micro services", "micro-services"],
+  "Distributed Systems": ["distributed systems", "distributed system", "distributed computing"],
+  "ETL": ["etl", "etl pipeline", "etl pipelines"],
+  "Data Pipeline": ["data pipeline", "data pipelines"],
+
+  "Unit Testing": ["unit test", "unit tests", "unit testing"],
+  "pytest": ["pytest"],
+  "Test-Driven Development": ["tdd", "test-driven development", "test driven development"],
+
+  "D3.js": ["d3", "d3.js", "d3js"],
+  "spaCy": ["spacy"],
+  "Sentence Transformers": ["sentence transformers", "sentence-transformers"],
+  "Knowledge Graphs": ["knowledge graph", "knowledge graphs"]
+}
