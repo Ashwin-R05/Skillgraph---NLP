@@ -1,0 +1,38 @@
+[
+  {
+    "id": "tool_or_manual",
+    "template": "You mentioned {matched_resume_skill} in your resume. Did you personally implement {missing_skill}, or use a pre-built library or tool for it?",
+    "options": [
+      "Implemented it myself",
+      "Used a library/tool",
+      "Not sure"
+    ]
+  },
+  {
+    "id": "depth_check",
+    "template": "Your resume mentions {matched_resume_skill}. How directly did you work with {missing_skill} — hands-on, or only as part of a larger framework?",
+    "options": [
+      "Hands-on",
+      "Part of a framework",
+      "Not sure"
+    ]
+  },
+  {
+    "id": "production_experience",
+    "template": "Based on your experience with {matched_resume_skill}, have you used {missing_skill} directly in production, or primarily through abstractions?",
+    "options": [
+      "Implemented it myself",
+      "Used a library/tool",
+      "Not sure"
+    ]
+  },
+  {
+    "id": "hands_on_involvement",
+    "template": "You highlighted {matched_resume_skill} in your project experience. Did your work include hands-on configuration/development of {missing_skill}?",
+    "options": [
+      "Hands-on",
+      "Part of a framework",
+      "Not sure"
+    ]
+  }
+]
