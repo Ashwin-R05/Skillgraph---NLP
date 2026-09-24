@@ -103,11 +103,26 @@ Identifies which required skills are missing from the resume, but are implied by
   - Guarantees **academic honesty**: Never invents metrics, tools, or experiences beyond what was verified.
   - Transparently denotes partial exposure (*"framework/tooling exposure"*).
 
+### Stage 6: Full Integration — Web Application (`server.py` & `frontend/`)
+- **Backend API Server (Flask)**: Exposes RESTful endpoints (`/api/analyze`, `/api/answer`, `/api/report/<session_id>`) managing in-memory session pipelines.
+- **Frontend UI (React + Vite + Tailwind CSS)**:
+  - **Upload Screen**: Resume upload (`.pdf`/`.docx`) and Job Description text input.
+  - **Clarifying Questions Screen**: One-at-a-time interactive chat-card verification flow.
+  - **Final Report Screen**: Fit percentage score banner, categorized skill chips, detailed inference explanations, and original vs suggested bullet comparisons.
+
 ---
 
 ## 📂 Project Structure
 
 ```
+├── server.py                     # Stage 6: Flask API Backend
+├── frontend/                     # Stage 6: React + Vite + Tailwind CSS App
+│   ├── src/
+│   │   ├── App.jsx               # Complete 3-screen candidate workflow
+│   │   ├── main.jsx
+│   │   └── index.css
+│   ├── package.json
+│   └── vite.config.js
 ├── skillgraph/
 │   ├── __init__.py
 │   ├── parser.py                 # Stage 1: Parsing & Segmentation
@@ -124,7 +139,7 @@ Identifies which required skills are missing from the resume, but are implied by
 ├── test_stage2.py                # Test script for Stage 2
 ├── test_stage3.py                # Test script for Stage 3
 ├── test_stage4.py                # Test script for Stage 4
-├── test_stage5.py                # Full end-to-end test (Stages 1 through 5)
+├── test_stage5.py                # Full end-to-end pipeline test
 ├── requirements.txt              # Project dependencies
 └── README.md                     # Project documentation
 ```
@@ -134,7 +149,8 @@ Identifies which required skills are missing from the resume, but are implied by
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
-- Python 3.10+ (tested on Python 3.10 - 3.14)
+- Python 3.10+
+- Node.js 18+ and npm
 - Virtual environment recommended
 
 ### 2. Installation
@@ -148,36 +164,40 @@ cd Skillgraph---NLP
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Install dependencies
+# Install Python backend dependencies
 pip install -r requirements.txt
+pip install flask flask-cors
+
+# Install Frontend dependencies
+cd frontend && npm install && cd ..
 ```
 
-> **Note on PyTorch / Sentence-Transformers:**
-> For CPU-only environments, install PyTorch with:
-> ```bash
-> pip install torch --index-url https://download.pytorch.org/whl/cpu
-> pip install sentence-transformers networkx
-> ```
+### 3. Running the Full Web Application (Stage 6)
 
-### 3. Running Stage Tests
-
-Each stage has an independent test script demonstrating its inputs, processing, and output:
+Launch both the backend and frontend servers:
 
 ```bash
-# Run Stage 1 (Parsing & Segmentation)
-python test_stage1.py
+# 1. Start the Flask Backend (runs on http://127.0.0.1:5000)
+source .venv/bin/activate
+python server.py
 
-# Run Stage 2 (Explicit Skill Extraction)
-python test_stage2.py
+# 2. In a separate terminal, start the React Frontend (runs on http://localhost:5173)
+cd frontend
+npm run dev
+```
 
-# Run Stage 3 (Inference Engine)
-python test_stage3.py
+Open `http://localhost:5173` in your browser to interact with the full candidate experience!
 
-# Run Stage 4 (Question Generation & Verification)
-python test_stage4.py
+### 4. Running Individual Stage Scripts
 
-# Run Full End-to-End Pipeline (Stages 1 through 5)
-python test_stage5.py
+Each stage can also be tested independently from the CLI:
+
+```bash
+python test_stage1.py   # Stage 1: Parsing & Segmentation
+python test_stage2.py   # Stage 2: Explicit Extraction
+python test_stage3.py   # Stage 3: Inference Engine
+python test_stage4.py   # Stage 4: Question Generation & Verification
+python test_stage5.py   # Full Pipeline (Stages 1 to 5)
 ```
 
 ---
