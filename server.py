@@ -68,8 +68,8 @@ app = Flask(__name__)
 # ── High-Level Security Fix 1: Max upload size (5 MB) ──
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
 
-# Enable CORS for frontend integration
-CORS(app)
+# Enable CORS for frontend integration (restricted to known dev origins)
+CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"])
 
 # ── High-Level Security Fix 2: Rate Limiting to prevent compute exhaustion ──
 limiter = Limiter(
@@ -128,6 +128,23 @@ def ratelimit_handler(e):
     return jsonify({"error": "Rate limit exceeded. Please wait a moment before trying again."}), 429
 
 
+@app.errorhandler(500)
+def internal_server_error(error):
+    logger.exception("Unhandled 500 error")
+    return jsonify({"error": "An unexpected server error occurred. Please try again later."}), 500
+
+
+@app.after_request
+def add_security_headers(response):
+    """Attach hardening headers to every response."""
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
+
+
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok", "service": "SkillGraph API"})
@@ -163,6 +180,8 @@ def analyze():
 
     # Save uploaded file to a temporary location for Stage 1 parser
     filename = secure_filename(file.filename)
+    if not filename:
+        return jsonify({"error": "Invalid filename"}), 400
     suffix = Path(filename).suffix.lower()
     temp_dir = tempfile.mkdtemp(prefix="skillgraph_")
     temp_path = Path(temp_dir) / f"upload_{uuid.uuid4().hex[:8]}{suffix}"
@@ -309,7 +328,7 @@ def get_report(session_id: str):
     """Compiles Stage 5 report and rewrites on the session's current state."""
     cleanup_stale_sessions()
 
-    if not session_id or session_id not in SESSIONS:
+    if not session_id or len(session_id) > 100 or session_id not in SESSIONS:
         return jsonify({"error": "Invalid or expired session_id"}), 404
 
     session_data = SESSIONS[session_id]
