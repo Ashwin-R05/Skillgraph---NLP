@@ -1,0 +1,242 @@
+[
+  {
+    "id": "case_01_oauth_firebase",
+    "resume_statements": [
+      "Built the application with authentication and third-party login using Firebase.",
+      "Developed mobile UI views with Flutter for iOS and Android."
+    ],
+    "job_description": "We are looking for a Mobile Developer with Flutter experience. Must understand OAuth protocols, and experience with Kubernetes is a plus.",
+    "ground_truth": {
+      "Flutter": "EXPLICIT",
+      "OAuth": "SHOULD_INFER",
+      "Kubernetes": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_02_react_frontend",
+    "resume_statements": [
+      "Created responsive single-page web applications using React.",
+      "Implemented state management and component lifecycle optimization."
+    ],
+    "job_description": "Frontend Engineer needed with strong React skills. Must be proficient in JavaScript and have experience with Docker containerization.",
+    "ground_truth": {
+      "React": "EXPLICIT",
+      "JavaScript": "SHOULD_INFER",
+      "Docker": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_03_fastapi_backend",
+    "resume_statements": [
+      "Developed high-performance microservices and backend services using FastAPI and Python.",
+      "Maintained data persistence with PostgreSQL database."
+    ],
+    "job_description": "Backend Engineer proficient in Python, REST API design, and cloud infrastructure on AWS.",
+    "ground_truth": {
+      "Python": "EXPLICIT",
+      "REST API": "SHOULD_INFER",
+      "AWS": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_04_data_spark_kafka",
+    "resume_statements": [
+      "Built real-time streaming pipelines with Apache Spark and Apache Kafka.",
+      "Stored analytical aggregates in PostgreSQL."
+    ],
+    "job_description": "Data Engineer with Apache Spark and Apache Kafka. Must have experience with ETL processes and RabbitMQ messaging.",
+    "ground_truth": {
+      "Apache Spark": "EXPLICIT",
+      "Apache Kafka": "EXPLICIT",
+      "ETL": "SHOULD_INFER",
+      "RabbitMQ": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_05_devops_docker",
+    "resume_statements": [
+      "Containerized legacy applications using Docker and Docker Compose.",
+      "Managed version control and team workflows using Git."
+    ],
+    "job_description": "DevOps Specialist: Requires Docker and Git. Desired experience in Kubernetes orchestration and Terraform infrastructure.",
+    "ground_truth": {
+      "Docker": "EXPLICIT",
+      "Git": "EXPLICIT",
+      "Kubernetes": "SHOULD_INFER",
+      "Terraform": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_06_qa_testing",
+    "resume_statements": [
+      "Authored comprehensive test suites and automated integration tests using pytest.",
+      "Worked closely with developers in a Python codebase."
+    ],
+    "job_description": "QA Automation Engineer: Expertise in Python and pytest. Must practice Unit Testing and understand Angular web frontend.",
+    "ground_truth": {
+      "Python": "EXPLICIT",
+      "pytest": "EXPLICIT",
+      "Unit Testing": "SHOULD_INFER",
+      "Angular": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_07_cloud_aws_gcp",
+    "resume_statements": [
+      "Architected and deployed scalable infrastructure on AWS using EC2, S3, and RDS.",
+      "Monitored server health and automated backups."
+    ],
+    "job_description": "Cloud Engineer: Experience with AWS and GCP required. Experience with CI/CD pipelines preferred.",
+    "ground_truth": {
+      "AWS": "EXPLICIT",
+      "GCP": "GENUINE_GAP",
+      "CI/CD": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_08_ml_engineer",
+    "resume_statements": [
+      "Trained convolutional neural networks using PyTorch for image classification.",
+      "Evaluated model performance using precision, recall, and ROC-AUC."
+    ],
+    "job_description": "Machine Learning Engineer: PyTorch experience required. Must have strong foundational Machine Learning knowledge and experience with React.",
+    "ground_truth": {
+      "PyTorch": "EXPLICIT",
+      "Machine Learning": "SHOULD_INFER",
+      "React": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_09_angular_frontend",
+    "resume_statements": [
+      "Built enterprise dashboard applications using Angular framework.",
+      "Collaborated with designers to deliver accessible web UI."
+    ],
+    "job_description": "Senior Frontend Developer: Angular proficiency required. Must know TypeScript and have Apache Airflow experience.",
+    "ground_truth": {
+      "Angular": "EXPLICIT",
+      "TypeScript": "SHOULD_INFER",
+      "Apache Airflow": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_10_django_sql",
+    "resume_statements": [
+      "Developed backend services using Django framework.",
+      "Created relational database schemas and data models."
+    ],
+    "job_description": "Django Developer: Requires Django and Python. Must have experience building REST API endpoints and Elasticsearch search clusters.",
+    "ground_truth": {
+      "Django": "EXPLICIT",
+      "Python": "SHOULD_INFER",
+      "REST API": "SHOULD_INFER",
+      "Elasticsearch": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_11_sql_databases",
+    "resume_statements": [
+      "Designed relational database schemas, normalized tables, and wrote complex queries in PostgreSQL.",
+      "Optimized query execution plans and index usage."
+    ],
+    "job_description": "Database Administrator: Requires PostgreSQL. Must possess dedicated MySQL database administration experience and familiarity with MongoDB.",
+    "ground_truth": {
+      "PostgreSQL": "EXPLICIT",
+      "MySQL": "GENUINE_GAP",
+      "MongoDB": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_12_github_actions_cicd",
+    "resume_statements": [
+      "Configured automated testing and deployment workflows using GitHub Actions.",
+      "Maintained project releases and repository branch protections."
+    ],
+    "job_description": "Build Engineer: GitHub Actions experience required. Must understand CI/CD principles and have hands-on experience with Flutter mobile app development.",
+    "ground_truth": {
+      "GitHub Actions": "EXPLICIT",
+      "CI/CD": "SHOULD_INFER",
+      "Flutter": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_13_microservices_distributed",
+    "resume_statements": [
+      "Designed and implemented scalable microservices architecture communicating via message queues.",
+      "Decoupled monolithic services into independent domain services."
+    ],
+    "job_description": "Lead Architect: Microservices experience required. Distributed Systems background needed. Experience with Vue.js required.",
+    "ground_truth": {
+      "Microservices": "EXPLICIT",
+      "Distributed Systems": "SHOULD_INFER",
+      "Vue.js": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_14_nodejs_backend",
+    "resume_statements": [
+      "Built backend asynchronous APIs using Node.js and Express.",
+      "Integrated Redis for caching session tokens and rate limits."
+    ],
+    "job_description": "Backend Engineer: Node.js and Redis required. Must have solid JavaScript fundamentals and PyTorch experience.",
+    "ground_truth": {
+      "Node.js": "EXPLICIT",
+      "Redis": "EXPLICIT",
+      "JavaScript": "SHOULD_INFER",
+      "PyTorch": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_15_nlp_spacy",
+    "resume_statements": [
+      "Built text preprocessing and named entity recognition pipelines using spaCy.",
+      "Trained custom linguistic models for information extraction."
+    ],
+    "job_description": "NLP Researcher: Must have experience with spaCy. Foundational Machine Learning experience required. Android/Java experience desired.",
+    "ground_truth": {
+      "spaCy": "EXPLICIT",
+      "Machine Learning": "SHOULD_INFER",
+      "Java": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_16_auth_jwt",
+    "resume_statements": [
+      "Implemented secure user authentication with password hashing and session tokens.",
+      "Secured sensitive endpoints against unauthorized access."
+    ],
+    "job_description": "Security Specialist: Requires Authentication background. Needs JWT token handling experience and Hadoop cluster management.",
+    "ground_truth": {
+      "Authentication": "EXPLICIT",
+      "JWT": "SHOULD_INFER",
+      "Hadoop": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_17_data_pipeline_airflow",
+    "resume_statements": [
+      "Orchestrated daily batch workflows and dependency schedules using Apache Airflow.",
+      "Monitored task execution and failure retries."
+    ],
+    "job_description": "Data Platform Engineer: Apache Airflow required. Experience building Data Pipeline architectures required. Experience with D3.js visualization is a plus.",
+    "ground_truth": {
+      "Apache Airflow": "EXPLICIT",
+      "Data Pipeline": "SHOULD_INFER",
+      "D3.js": "GENUINE_GAP"
+    }
+  },
+  {
+    "id": "case_18_fullstack_edgecase",
+    "resume_statements": [
+      "Developed server-side web applications using Flask.",
+      "Wrote client scripts and styling with HTML and CSS."
+    ],
+    "job_description": "Full Stack Developer: Flask and HTML required. Must have REST API experience and Kubernetes cluster management.",
+    "ground_truth": {
+      "Flask": "EXPLICIT",
+      "HTML": "EXPLICIT",
+      "REST API": "SHOULD_INFER",
+      "Kubernetes": "GENUINE_GAP"
+    }
+  }
+]
