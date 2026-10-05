@@ -65,8 +65,8 @@ logger = logging.getLogger("skillgraph_api")
 
 app = Flask(__name__)
 
-# ── High-Level Security Fix 1: Max upload size (5 MB) ──
-app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
+# ── High-Level Security Fix 1: Max upload size (35 MB for bulk resume batches) ──
+app.config["MAX_CONTENT_LENGTH"] = 35 * 1024 * 1024  # 35 MB
 
 # Enable CORS for frontend integration (restricted to known dev origins)
 CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"])
@@ -120,7 +120,7 @@ def is_allowed_file(filename: str) -> bool:
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
-    return jsonify({"error": "File size exceeds the 5 MB limit. Please upload a smaller file."}), 413
+    return jsonify({"error": "Upload payload exceeds the 35 MB limit. Please upload fewer or smaller files."}), 413
 
 
 @app.errorhandler(429)
@@ -264,6 +264,197 @@ def analyze():
                 shutil.rmtree(temp_dir, ignore_errors=True)
         except Exception:
             pass
+
+
+@app.route("/api/bulk-analyze", methods=["POST"])
+@limiter.limit("20 per minute")
+def bulk_analyze():
+    """Accepts multipart form-data: multiple 'resumes' (files) + 'job_description' (text).
+
+    Processes resumes one by one sequentially through the full SkillGraph pipeline:
+      Stage 1: Parsing & Segmentation
+      Stage 2: Explicit Extraction
+      Stage 3: Graph + SBERT Inference
+      Stage 4: Verification status initialization
+      Stage 5: Fit Report & Constrained Rewrites
+
+    Stores each session in SESSIONS and returns ranked candidates list.
+    """
+    cleanup_stale_sessions()
+
+    job_description = request.form.get("job_description", "").strip()
+    if not job_description:
+        return jsonify({"error": "Job description text cannot be empty"}), 400
+    if len(job_description) > 50_000:
+        return jsonify({"error": "Job description exceeds maximum allowed length of 50,000 characters."}), 400
+
+    # Accept either 'resumes' or 'resume' key
+    files = request.files.getlist("resumes")
+    if not files:
+        files = request.files.getlist("resume")
+    if not files or all(not f.filename for f in files):
+        return jsonify({"error": "No resume files uploaded. Please attach at least one PDF or DOCX file."}), 400
+
+    if len(files) > 25:
+        return jsonify({"error": "Maximum 25 resumes allowed per bulk analysis request."}), 400
+
+    jd_clean = clean_jd_text(job_description)
+    jd_skills = extract_jd_skills(jd_clean, SKILL_DICT)
+
+    candidates: list[dict[str, Any]] = []
+
+    for idx, file in enumerate(files):
+        if not file or not file.filename:
+            continue
+
+        raw_filename = file.filename
+        safe_name = secure_filename(raw_filename) or f"candidate_{idx+1}"
+        if not is_allowed_file(raw_filename):
+            candidates.append({
+                "filename": raw_filename,
+                "candidate_name": Path(raw_filename).stem.replace("_", " ").title(),
+                "status": "error",
+                "error": f"Unsupported format. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
+                "fit_percentage": 0,
+            })
+            continue
+
+        suffix = Path(safe_name).suffix.lower()
+        temp_dir = tempfile.mkdtemp(prefix=f"skillgraph_bulk_{idx}_")
+        temp_path = Path(temp_dir) / f"upload_{uuid.uuid4().hex[:8]}{suffix}"
+
+        try:
+            file.save(str(temp_path))
+
+            # Stage 1: Parsing & Segmentation
+            resume_text = extract_resume_text(temp_path)
+            statements = segment_resume(resume_text)
+            if not statements:
+                candidates.append({
+                    "filename": raw_filename,
+                    "candidate_name": Path(raw_filename).stem.replace("_", " ").title(),
+                    "status": "error",
+                    "error": "Could not extract readable text statements from resume document.",
+                    "fit_percentage": 0,
+                })
+                continue
+
+            # Candidate name heuristic: extract clean name from header
+            first_line = ""
+            for line in resume_text.splitlines():
+                stripped = line.strip()
+                if (
+                    stripped
+                    and len(stripped) > 2
+                    and not stripped.lower().startswith(("curriculum", "resume", "cv", "page"))
+                ):
+                    clean_header = stripped.split("|")[0].split("•")[0].split("—")[0].strip()
+                    if "@" in clean_header:
+                        parts = clean_header.split()
+                        clean_header = " ".join([p for p in parts if "@" not in p and not any(c.isdigit() for c in p)])
+                    if clean_header and len(clean_header) > 1:
+                        first_line = clean_header[:35].strip()
+                        break
+            candidate_name = first_line if first_line else Path(raw_filename).stem.replace("_", " ").title()
+
+            # Stage 2: Explicit Skill Extraction
+            resume_skills = extract_resume_skills(statements, SKILL_DICT)
+            stage2_output = {
+                "resume_skills": resume_skills,
+                "jd_required_skills": jd_skills,
+            }
+
+            # Stage 3: Graph + SBERT Inference Engine
+            stage3_output = run_inference(stage2_output, GRAPH, SBERT_MODEL)
+            inferences = initialize_verification_status(stage3_output["inferences"])
+            explicitly_matched = stage3_output["explicitly_matched"]
+
+            # Stage 4: Verification status
+            stage4_output = {
+                "inferences": inferences,
+                "explicitly_matched": explicitly_matched,
+            }
+
+            # Stage 5: Compile Fit Report & Constrained Rewrites
+            report = compile_report(stage4_output)
+            rewrites = generate_all_rewrites(report)
+            final_output = build_final_output(report, rewrites)
+
+            # Store in session store for deep-dive inspection
+            session_id = str(uuid.uuid4())
+            SESSIONS[session_id] = {
+                "session_id": session_id,
+                "created_at": time.time(),
+                "statements": statements,
+                "jd_clean": jd_clean,
+                "explicitly_matched": explicitly_matched,
+                "inferences": inferences,
+                "questions": [],
+                "answered_skills": set(),
+                "final_report": final_output,
+            }
+
+            high_conf_skills = [
+                inf.get("missing_skill", "")
+                for inf in final_output["skills_breakdown"].get("high_confidence_unverified", [])
+            ]
+            genuine_gaps = [
+                inf.get("missing_skill", "")
+                for inf in final_output["skills_breakdown"].get("genuine_gaps", [])
+            ]
+
+            candidates.append({
+                "session_id": session_id,
+                "filename": raw_filename,
+                "candidate_name": candidate_name,
+                "status": "success",
+                "fit_percentage": final_output["fit_summary"]["fit_percentage"],
+                "matched_count": final_output["fit_summary"]["matched_count"],
+                "total_required": final_output["fit_summary"]["total_required_skills"],
+                "explicitly_matched": explicitly_matched,
+                "high_confidence_skills": high_conf_skills,
+                "genuine_gaps": genuine_gaps,
+                "rewrites_count": len(final_output.get("suggested_rewrites", [])),
+                "report": final_output,
+            })
+
+        except Exception as e:
+            logger.exception("Error processing candidate file %s in bulk analysis", raw_filename)
+            candidates.append({
+                "filename": raw_filename,
+                "candidate_name": Path(raw_filename).stem.replace("_", " ").title(),
+                "status": "error",
+                "error": f"Failed to analyze: {str(e)}",
+                "fit_percentage": 0,
+            })
+        finally:
+            try:
+                import shutil
+                if Path(temp_dir).exists():
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception:
+                pass
+
+    # Sort successful candidates by fit_percentage descending, then failed candidates
+    candidates.sort(
+        key=lambda c: (1 if c.get("status") == "success" else 0, c.get("fit_percentage", 0)),
+        reverse=True,
+    )
+
+    # Assign ranks
+    for rank_idx, cand in enumerate(candidates, 1):
+        cand["rank"] = rank_idx
+
+    successful_count = sum(1 for c in candidates if c.get("status") == "success")
+    failed_count = len(candidates) - successful_count
+
+    return jsonify({
+        "total": len(candidates),
+        "successful": successful_count,
+        "failed": failed_count,
+        "candidates": candidates,
+        "jd_skills_required": jd_skills,
+    })
 
 
 @app.route("/api/answer", methods=["POST"])
