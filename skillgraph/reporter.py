@@ -161,33 +161,22 @@ def _clean_trailing_punct(text: str) -> str:
     return text.strip().rstrip(".")
 
 
-def generate_rewrite(inference: dict[str, Any]) -> str:
+def generate_rewrite(
+    inference: dict[str, Any],
+    use_llm: bool = False,
+    llm_api_key: str | None = None,
+) -> str:
     """Generate a constrained, honest resume rewrite incorporating missing_skill.
 
-    Design Rationale (Academic Honesty):
-      This function uses deterministic template and slot-filling transformation
-      rather than an open-ended generative LLM call. This guarantees:
-        1. No hallucinated metrics, libraries, or unverified achievements.
-        2. Strict alignment with what the candidate confirmed (CONFIRMED vs.
-           PARTIALLY_CONFIRMED).
-        3. Traceable provenance back to the original source statement.
-
-    Rules:
-      - If CONFIRMED (implemented / hands-on):
-        Naturally highlights active implementation or hands-on practice with
-        missing_skill in the context of matched_resume_skill.
-      - If PARTIALLY_CONFIRMED (used tool / framework):
-        Transparently phrases the experience as integrating or leveraging
-        the missing_skill via frameworks or third-party tooling.
-      - Preserves key context, metrics, and technologies from the original
-        statement.
-
-    Args:
-        inference: Confirmed or partially confirmed inference object.
-
-    Returns:
-        A polished, concise rewrite string ending with a period.
+    If use_llm is True and an API key is provided, attempts an LLM rewrite.
+    Otherwise falls back deterministically to template slot-filling.
     """
+    if use_llm:
+        from skillgraph.llm_rewriter import generate_llm_rewrite
+        llm_candidate = generate_llm_rewrite(inference, api_key=llm_api_key)
+        if llm_candidate:
+            return llm_candidate
+
     missing_skill = inference.get("missing_skill", "")
     matched_resume_skill = inference.get("matched_resume_skill", "")
     original_statement = inference.get("matched_statement", "")
@@ -292,11 +281,17 @@ def generate_rewrite(inference: dict[str, Any]) -> str:
         return f"Implemented {missing_skill}-driven solutions with {matched_resume_skill}: {stmt_clean}."
 
 
-def generate_all_rewrites(report: dict[str, Any]) -> list[dict[str, str]]:
+def generate_all_rewrites(
+    report: dict[str, Any],
+    use_llm: bool = False,
+    llm_api_key: str | None = None,
+) -> list[dict[str, str]]:
     """Generate rewrite suggestions for all confirmed and partially confirmed skills.
 
     Args:
         report: Compiled report from compile_report().
+        use_llm: Optional flag to use an LLM for rewriting. Defaults to False.
+        llm_api_key: Optional API key for LLM provider.
 
     Returns:
         List of dicts with 'missing_skill', 'original_statement',
@@ -309,7 +304,7 @@ def generate_all_rewrites(report: dict[str, Any]) -> list[dict[str, str]]:
 
     rewrites: list[dict[str, str]] = []
     for inf in eligible:
-        rewrite_str = generate_rewrite(inf)
+        rewrite_str = generate_rewrite(inf, use_llm=use_llm, llm_api_key=llm_api_key)
         rewrites.append({
             "missing_skill": inf.get("missing_skill", ""),
             "original_statement": inf.get("matched_statement", ""),
