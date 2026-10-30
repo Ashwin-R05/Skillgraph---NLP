@@ -1,54 +1,74 @@
-# SkillGraph — Stage 7: Inference Engine Evaluation Report
+# SkillGraph — Evaluation Results & Ablation Analysis
 
-## 1. Executive Summary
+## 1. Dataset & Methodology Transparency
 
-This evaluation measures the empirical performance of the Stage 3 Inference Engine on a hand-curated test dataset of 18 realistic resume/job-description scenarios comprising 60 required skills.
+> **Author Disclosure**: This evaluation is benchmarked on a compact, self-labeled dataset (`eval_dataset.json`) consisting of **18 test cases** and **60 labeled skill instances** created by the author. Every number presented here is reproducible and was directly produced by executing `python run_evaluation.py`.
 
-The evaluation benchmarks whether the hybrid graph-semantic engine accurately:
-1. Recommends plausible candidate skills for inference (**Precision & Recall**).
-2. Refrains from over-inferring unrelated skills (**False Positive Rate on Genuine Gaps**).
-
-> **Academic Limitation Note**: This evaluation is conducted on a small, hand-labeled synthetic dataset (18 cases, 60 skill targets) designed as a rigorous empirical sanity check and viva defense asset, rather than an exhaustive multi-thousand benchmark. No graph weights or model hyperparameters were artificially tuned to inflate these figures.
-
----
-
-## 2. Key Performance Metrics
-
-| Metric | Score | Interpretation |
-| :--- | :--- | :--- |
-| **Inference Precision** | **94.1%** | Of all skills the engine proposed to infer, 94.1% were genuine, justifiable inferences according to human judges. |
-| **Inference Recall** | **94.1%** | The engine successfully surfaced 94.1% of the implicit skills that human judges expected. |
-| **Inference F1-Score** | **94.1%** | Harmonic mean of precision and recall. |
-| **False Positive Rate on Gaps** | **5.0%** | Rate at which genuine skill gaps were mistakenly inferred (1 out of 20 gaps). |
-| **Overall Classification Accuracy** | **96.7%** | Accuracy across all three classes (EXPLICIT, SHOULD_INFER, GENUINE_GAP). |
-
----
-
-## 3. Evaluation Breakdown & Error Analysis
-
-- **Total Test Cases**: 18
+### Ground Truth Breakdown
+- **Explicit Skills**: 23 instances (skills explicitly stated in the candidate's resume)
+- **Should Infer (Implicit Skills)**: 17 instances (skills absent from the text that a human technical interviewer expects the candidate to possess)
+- **Genuine Gaps**: 20 instances (skills requested by the JD that the candidate has no demonstrable background in)
 - **Total Skills Evaluated**: 60
-- **Correct Classifications**: 58
-- **Total Misclassifications**: 2
-
-### Misclassified Cases
-
-| Case ID | Skill | Expected Label | Predicted Label | Reason for Discrepancy |
-| :--- | :--- | :--- | :--- | :--- |
-| `case_11_sql_databases` | **MySQL** | `GENUINE_GAP` | `SHOULD_INFER` | Graph prior or semantic overlap caused engine to infer a skill human judge deemed distinct. |
-| `case_15_nlp_spacy` | **Machine Learning** | `SHOULD_INFER` | `GENUINE_GAP` | Graph weight or semantic similarity fell below verification threshold (conservative inference). |
 
 ---
 
-## 4. Discussion & Viva Takeaways
+## 2. Component Ablation Study
 
-1. **Conservative Inference Design**:
-   The engine demonstrates high precision (94.1%) and a low false-positive rate on genuine gaps (5.0%). In recruitment automation, false positives are significantly more damaging than false negatives because falsely attributing a skill undermines recruiter trust. The low FPR confirms the engine avoids reckless over-inferencing.
+To evaluate the contribution of each layer in SkillGraph's architecture, we compare four approaches under identical test inputs:
 
-2. **Source of Missed Inferences (Recall 94.1%)**:
-   Where the engine labeled a skill as `GENUINE_GAP` instead of `SHOULD_INFER`, the cause is typically either:
-   - The absence of a direct directed edge in `skill_graph.json`, or
-   - Combined confidence falling slightly below the 40% threshold (`LOW_THRESHOLD = 40`) when semantic similarity between short bullet text and the skill name is moderate.
+1. **(a) Explicit Keyword Matching Only**: Traditional ATS keyword baseline without any inference layer.
+2. **(b) Graph-Only Inference**: Uses hand-curated graph edge weights ($w_{graph} \ge 0.40$), ignoring candidate statement text.
+3. **(c) Sentence-BERT-Only Inference**: Evaluates direct cosine semantic similarity between resume statements and missing skill names (calibrated threshold $\ge 0.25$), without topological graph constraints.
+4. **(d) Current Hybrid Method (SkillGraph)**: Blends the curated graph prior with SBERT contextual embedding similarity:
+   $$\text{Confidence} = (0.50 \times w_{graph} + 0.50 \times \text{sim}_{SBERT}) \times 100 \ge 40\%$$
 
-3. **Stage 4 Verification Safety Net**:
-   Crucially, any inference flagged by Stage 3 with confidence between 40% and 85% is routed to Stage 4 clarifying questions (`NEEDS_VERIFICATION`), meaning candidates must self-verify before the skill is confirmed. This multi-stage architecture further protects real-world users from inference errors.
+### Ablation Comparison Table
+
+| Method | Precision | Recall | F1-Score | False Positive Rate (Gaps) | Overall Accuracy |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **(a) Explicit Only** | 0.0%* | 0.0% | 0.0% | **0.0%** | 71.7% |
+| **(b) Graph-Only** | 84.2% | **94.1%** | 88.9% | 15.0% | 93.3% |
+| **(c) SBERT-Only** | 80.0% | 70.6% | 75.0% | 15.0% | 86.7% |
+| **(d) Hybrid (SkillGraph)** | **94.1%** | **94.1%** | **94.1%** | **5.0%** | **96.7%** |
+
+*\*Explicit matching does not predict implicit skills, yielding 0 true positives for SHOULD_INFER.*
+
+### Key Takeaways from Ablation
+- **Why Graph Alone is Insufficient**: The graph prior identifies 16 of 17 inferable skills (Recall: 94.1%), but suffers from a **15.0% false-positive rate on genuine gaps** (e.g., inferring MySQL and MongoDB whenever PostgreSQL is present, regardless of context).
+- **Why SBERT Alone is Insufficient**: Without structural graph priors, Sentence-BERT cosine similarity between generic bullet statements and isolated skill acronyms suffers from low semantic sharpness (F1: 75.0%), confusing adjacent technologies.
+- **The Value of Hybrid Fusion**: Combining the knowledge graph prior with SBERT contextual confirmation reduces the false-positive rate from 15.0% down to **5.0%** while preserving top-tier recall (94.1%) and reaching an F1-score of **94.1%**.
+
+---
+
+## 3. Error Analysis on Actual System Outputs
+
+On the 60 evaluated skill cases, the hybrid system made exactly **2 errors** (58 / 60 correct, 96.7% accuracy):
+
+### 1. False Positive on Genuine Gap: `case_11_sql_databases`
+- **Missing Skill**: `MySQL`
+- **Expected Label**: `GENUINE_GAP` (The job description demanded dedicated MySQL DBA administration experience).
+- **Predicted Label**: `SHOULD_INFER` (`NEEDS_VERIFICATION` with 40% confidence).
+- **Root Cause**: The candidate's resume stated: *"Designed relational database schemas, normalized tables, and wrote complex queries in PostgreSQL."* The knowledge graph contains a directed edge from `PostgreSQL` to `MySQL` ($w=0.55$) representing general relational database knowledge transfer. Combined with SBERT similarity of 0.26, the hybrid confidence reached:
+  $$(0.50 \times 0.55 + 0.50 \times 0.26) \times 100 = 40.5\% \approx 40\%$$
+  Because 40% meets the threshold for `NEEDS_VERIFICATION`, the engine proposed verifying MySQL.
+- **Mitigation in Pipeline**: While technically a false positive under binary classification, this output routes to a Stage 4 clarifying question. If the candidate answers *"Not sure"*, the pipeline immediately demotes MySQL to a genuine skill gap before the final report is compiled.
+
+### 2. False Negative on Inferable Skill: `case_15_nlp_spacy`
+- **Missing Skill**: `Machine Learning`
+- **Expected Label**: `SHOULD_INFER`
+- **Predicted Label**: `GENUINE_GAP` (Confidence: 0%)
+- **Root Cause**: The candidate's resume described building NER pipelines using `spaCy`. In `skill_graph.json`, directed edges to `Machine Learning` exist from `PyTorch`, `TensorFlow`, `scikit-learn`, and `NLP`, but **no direct 1-hop edge exists from `spaCy` to `Machine Learning`**. Because the candidate did not explicitly write the letters "NLP" or "scikit-learn", the 1-hop graph search found zero predecessors, resulting in 0% confidence.
+- **Mitigation in Pipeline**: Expand graph coverage or support 2-hop traversals (e.g. `spaCy` $\to$ `NLP` $\to$ `Machine Learning`).
+
+---
+
+## 4. How to Extend the Dataset (Recommendations for Future Labeling)
+
+The current 18-case dataset is focused on web, data engineering, and backend roles. To benchmark SkillGraph for production or academic submission, the dataset should be expanded to 50–100 cases. 
+
+### Recommended Scenarios to Hand-Label:
+1. **Cloud & Platform Engineering**: Resumes with Terraform, Ansible, and CloudFormation targeting GCP/Azure roles (evaluating multi-cloud infrastructure inference).
+2. **Mobile Development**: React Native and Flutter profiles applying for native iOS (Swift) / Android (Kotlin) positions.
+3. **Data Science & ML Engineering**: Resumes focusing on Pandas, NumPy, and Scikit-Learn applying for Deep Learning/LLM roles requiring PyTorch and CUDA.
+4. **Systems & Embedded Programming**: C/C++ developers applying for Rust systems roles.
+5. **Security Engineering**: Pen-testing/OWASP backgrounds applying for DevSecOps/OAuth compliance roles.
