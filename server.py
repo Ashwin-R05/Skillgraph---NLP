@@ -172,6 +172,13 @@ def analyze():
             "error": f"Unsupported file type. Allowed formats: {', '.join(ALLOWED_EXTENSIONS)}"
         }), 400
 
+    # Enforce 5 MB limit for single resume upload
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > 5 * 1024 * 1024:
+        return jsonify({"error": "File size exceeds the 5 MB limit. Please upload a smaller file."}), 413
+
     job_description = request.form.get("job_description", "").strip()
     if not job_description:
         return jsonify({"error": "Job description text cannot be empty"}), 400

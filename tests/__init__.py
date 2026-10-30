@@ -1,0 +1,3 @@
+"""
+SkillGraph test suite package.
+"""
