@@ -1,91 +1,47 @@
-# SkillGraph — Explainable Implicit Skill Inference & Resume Evaluation
+# SkillGraph: Explainable Skill Inference & Resume Matching
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![CI](https://github.com/Ashwin-R05/Skillgraph---NLP/actions/workflows/ci.yml/badge.svg)](https://github.com/Ashwin-R05/Skillgraph---NLP/actions/workflows/ci.yml)
 [![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=flat&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![React 19](https://img.shields.io/badge/React-19.x-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-8.x-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4.x-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![spaCy](https://img.shields.io/badge/spaCy-en__core__web__sm-09A3D5?style=flat&logo=spacy&logoColor=white)](https://spacy.io/)
 [![Sentence-Transformers](https://img.shields.io/badge/Sentence--Transformers-all--MiniLM--L6--v2-FFA116?style=flat)](https://www.sbert.net/)
 [![NetworkX](https://img.shields.io/badge/NetworkX-DiGraph-blueviolet?style=flat)](https://networkx.org/)
 
-**SkillGraph** is an explainable Natural Language Processing (NLP) system designed to solve a fundamental flaw in automated talent screening: **candidates rarely enumerate every foundational tool, protocol, or concept they use, yet keyword-matching Applicant Tracking Systems (ATS) disqualify them for unstated implicit competencies.**
-
-Rather than delegating candidate evaluation to ungrounded, hallucination-prone generative LLMs, SkillGraph combines:
-1. **Curated Skill Gazetteer & Alias Matching**: Extracts explicit skills with sentence-level provenance.
-2. **Hybrid Graph Traversal & Local Sentence-BERT**: Infers unstated skills using domain graph priors ($w_{\text{edge}}$) and contextual semantic embeddings ($\text{sim}_{\text{BERT}}$).
-3. **Active Candidate Disambiguation**: Solicits targeted human clarification for borderline inferences to prevent false positives.
-4. **Constrained Slot-Filling Rewriting**: Proposes verifiable resume bullet revisions without fabricating achievements, metrics, or tools.
-5. **Research-Grade Web Application**: Features an academic-prestige React frontend and a hardened Flask REST backend.
+**SkillGraph** is an NLP pipeline that extracts explicit skills from resumes, infers unstated (implicit) skills required by a job description using a hybrid knowledge graph and semantic embeddings, and generates grounded resume bullet suggestions through active candidate verification.
 
 ---
 
-## 🛠️ Technology Stack
+## 📌 Problem
 
-SkillGraph is engineered with separation of concerns between an offline-capable NLP computation engine and an institutional-grade reactive web interface.
+Traditional keyword-matching Applicant Tracking Systems (ATS) evaluate candidate fit using literal string matching. If a job description asks for `REST API` and `Distributed Systems`, a candidate who wrote `FastAPI` and `Microservices` may be flagged as lacking core qualifications. 
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        SKILLGRAPH SYSTEM STACK                         │
-├───────────────────────────────────┬────────────────────────────────────┤
-│           BACKEND STACK           │           FRONTEND STACK           │
-├───────────────────────────────────┼────────────────────────────────────┤
-│ • Python 3.10+ (Core Runtime)     │ • React 19 (Functional Components) │
-│ • Flask (RESTful Microframework)  │ • Vite 8 (HMR & Production Bundle) │
-│ • spaCy (en_core_web_sm)          │ • Tailwind CSS v4 (Design Engine)  │
-│ • Sentence-Transformers (Local)   │ • Instrument Serif & Plus Jakarta  │
-│ • NetworkX (Directed Graph)       │ • JetBrains Mono (Math/Code Font)  │
-│ • pdfplumber & python-docx        │ • Native Web Clipboard & Print API │
-│ • Flask-Limiter & Flask-CORS      │ • Zero External UI Library Bloat   │
-└───────────────────────────────────┴────────────────────────────────────┘
-```
+Conversely, delegating this task entirely to generative Large Language Models (LLMs) presents trade-offs in recruiting:
+1. **Hallucination Risk**: Unconstrained LLMs often fabricate achievements, metrics, or technologies not present in the original resume.
+2. **Privacy Concerns**: Uploading candidate resumes and private job descriptions to commercial cloud APIs transmits personally identifiable information (PII).
+3. **Non-Determinism**: LLM outputs can vary across runs, making consistent candidate scoring difficult to audit.
 
-### 1. Backend Technologies
-- **Python 3.10+**: Core language for pipeline modules, tensor operations, and file processing.
-- **Flask**: Lightweight WSGI microframework exposing REST endpoints with session state management.
-- **spaCy (`en_core_web_sm`)**: Used in Stage 1 for sentence segmentation and in Stage 2 for entity cross-referencing. Runs locally.
-- **Sentence-Transformers (`all-MiniLM-L6-v2`)**: Generates 384-dimensional dense semantic embeddings to measure cosine similarity between resume statements and missing skill names. Runs completely on-device without cloud API dependencies.
-- **NetworkX**: In-memory directed graph (`DiGraph`) modeling prerequisite and co-occurrence relationships across 68 technical competencies and 64 curated edges.
-- **`pdfplumber` & `python-docx`**: Native extractors for PDF and DOCX document streams with structural cleanup and boundary repair.
-- **`Flask-Limiter`**: In-memory rate limiting (`10/min` on heavy NLP analysis, `60/min` on interaction endpoints) protecting against compute starvation.
-- **Security Hardening**: Built-in magic bytes validation (`%PDF-`, `PK\x03\x04`), 5 MB request size bounds (`MAX_CONTENT_LENGTH`), DOCX decompression bomb defense, and strict sanitization headers (`CSP`, `X-Frame-Options`, `nosniff`).
-
-### 2. Frontend Technologies
-- **React 19**: Reactive single-page application driving the 3-stage user journey (Document Ingestion $\rightarrow$ Active Disambiguation $\rightarrow$ Fit Dossier & Rewrite Studio).
-- **Vite 8**: Modern build pipeline with sub-second hot module replacement and production tree-shaking producing a 78 KB gzipped bundle.
-- **Tailwind CSS v4**: Utility-first design system utilizing `@theme` tokens for academic aesthetics, glassmorphism, responsive data grids, and glowing accent borders.
-- **Academic Typography**:
-  - *Display Serif*: **Instrument Serif** for prestigious editorial titles.
-  - *Interface Sans*: **Plus Jakarta Sans** for readable data matrices, badges, and controls.
-  - *Monospace*: **JetBrains Mono** for algebraic formulas, confidence scores, and code tokens.
-- **Native Browser Integrations**:
-  - Drag-and-drop file upload with real-time size and format inspection.
-  - Interactive keyboard shortcuts (`[1]`, `[2]`, `[3]`) for rapid interview navigation.
-  - One-click copy-to-clipboard for suggested revisions.
-  - Full print media stylesheet (`@media print`) for compiling physical paper dossiers or PDF exports.
+SkillGraph investigates a lightweight, local alternative: combining a curated domain graph prior with on-device sentence embeddings to infer implied competencies with traceable provenance.
 
 ---
 
-## 🔄 End-to-End Project Workflow
-
-The following diagram illustrates how raw documents flow through SkillGraph's 5 core pipeline stages, web API, and user interface:
+## 🏗️ Architecture & Pipeline Overview
 
 ```mermaid
 flowchart TD
-    subgraph UI [Frontend User Interface - React + Vite]
-        U1[1. Upload Resume & Input JD] -->|POST multipart/form-data| API1[/api/analyze]
-        U2[2. Active Verification Interview] -->|POST JSON choice| API2[/api/answer]
-        U3[3. Candidate Fit Dossier & Rewrites] -->|GET report| API3[/api/report/:id]
+    subgraph UI [Frontend - React + Vite]
+        U1[1. Upload Resume & JD] -->|POST /api/analyze| API1[/api/analyze]
+        U2[2. Verification Questions] -->|POST /api/answer| API2[/api/answer]
+        U3[3. Candidate Fit Report & Rewrites] -->|GET /api/report/:id| API3[/api/report/:id]
     end
 
     subgraph BE [Backend Flask Pipeline - server.py]
         API1 --> S1[Stage 1: Parsing & Segmentation]
         
         subgraph Stage1 [Stage 1: skillgraph/parser.py]
-            S1 --> S1_PDF[pdfplumber / python-docx]
-            S1_PDF --> S1_SEC[Security Check: Magic Bytes & Zip Bomb Defense]
-            S1_SEC --> S1_CLN[Regex Noise & Header Stripping]
-            S1_CLN --> S1_SEG[spaCy Bullet-Level Statement Segmentation]
+            S1 --> S1_PARSE[pdfplumber / python-docx]
+            S1_PARSE --> S1_CLN[Regex Noise & Section Header Stripping]
+            S1_CLN --> S1_SEG[spaCy Sentence & Bullet Segmentation]
         end
 
         S1_SEG --> S2[Stage 2: Explicit Extraction]
@@ -97,20 +53,20 @@ flowchart TD
         end
 
         S2_PROV --> S3[Stage 3: Inference Engine]
-
+        
         subgraph Stage3 [Stage 3: skillgraph/inference.py]
             S3 --> S3_DIFF[Identify Missing JD Skills]
             S3_DIFF --> S3_GRAPH[(skill_graph.json\n64 Directed Edges)]
             S3_DIFF --> S3_SBERT[Sentence-BERT Embeddings\nall-MiniLM-L6-v2]
-            S3_GRAPH & S3_SBERT --> S3_FORM[Compute Confidence:\n0.5 * Edge_Weight + 0.5 * Cosine_Sim]
+            S3_GRAPH & S3_SBERT --> S3_FORM[Confidence Score Calculation:\n0.5 * Edge_Weight + 0.5 * Cosine_Sim]
             S3_FORM --> S3_CLS{Confidence Threshold}
-            S3_CLS -->|> 85%| HIGH[HIGH_CONFIDENCE\nAuto-Accepted]
-            S3_CLS -->|40% to 85%| NV[NEEDS_VERIFICATION\nFlagged for Stage 4]
+            S3_CLS -->|> 74%| HIGH[HIGH_CONFIDENCE\nInferred directly]
+            S3_CLS -->|40% to 74%| NV[NEEDS_VERIFICATION\nFlagged for Stage 4]
             S3_CLS -->|< 40%| GAP[SKILL_GAP\nGenuine Gap]
         end
 
         NV --> S4[Stage 4: Clarifying Questions]
-
+        
         subgraph Stage4 [Stage 4: skillgraph/verifier.py]
             S4 --> S4_TMPL[(question_templates.json)]
             S4_TMPL --> S4_GEN[Generate Contextual Questions]
@@ -119,10 +75,10 @@ flowchart TD
         end
 
         S4_RESP & HIGH & GAP --> S5[Stage 5: Report & Rewriting]
-
+        
         subgraph Stage5 [Stage 5: skillgraph/reporter.py]
             S5 --> S5_SCORE[Calculate Weighted Fit %]
-            S5_SCORE --> S5_SLOT[Deterministic Slot-Filling Rewrites]
+            S5_SCORE --> S5_SLOT[Grounded Slot-Filling Rewrites]
             S5_SLOT --> API3
         end
     end
@@ -132,159 +88,139 @@ flowchart TD
 
 ---
 
-## 🔬 Detailed Pipeline Stages
+## 🔬 How the Pipeline Works
 
-### Stage 1: Parsing & Segmentation (`skillgraph/parser.py`)
-- **File Validation**: Inspects magic numbers (`%PDF-` for PDF, `PK\x03\x04` for DOCX) and validates zip entries to defend against decompression bombs (max uncompressed size: 25 MB, max compression ratio: 100:1).
-- **Layout Repair**: Normalizes carriage returns, collapses multiple newlines, and rejoins lines split mid-sentence by multi-column PDF layouts.
-- **Section & Noise Stripping**: Filters out resume section titles (e.g. `SUMMARY`, `EXPERIENCE`, `EDUCATION`, `SKILLS`) and decorative separator lines.
-- **Statement Segmentation**: Splits resumes on author-intended line breaks, using spaCy sentence segmentation as a fallback for run-on paragraphs (> 200 characters).
-- **Job Description Cleaning**: Normalizes job text into a clean block string (capped at 50,000 characters).
+1. **Stage 1: Parsing & Segmentation (`skillgraph/parser.py`)**
+   - Parses `.docx` and `.pdf` files.
+   - Cleans formatting artifacts and splits resumes into discrete, verifiable statement units using line boundaries and spaCy sentence segmentation.
 
-### Stage 2: Explicit Skill Extraction (`skillgraph/extractor.py`)
-- **Ontology Gazetteer**: Loads `skillgraph/skill_dictionary.json` containing 68 canonical technical skills and hundreds of synonym aliases (e.g. `"golang"` $\rightarrow$ `"Go"`, `"drf"` $\rightarrow$ `"Django"`, `"k8s"` $\rightarrow$ `"Kubernetes"`).
-- **Boundary-Aware Matching**: Performs greedy, longest-match-first regex phrase matching with word boundaries to prevent sub-string false alarms (e.g. preventing `"go"` from matching inside `"django"`).
-- **Statement Provenance**: Retains the exact resume sentence in which each skill was identified:
-  ```json
-  {
-    "skill": "FastAPI",
-    "source_statement": "Designed and implemented a microservices architecture using Python/FastAPI and PostgreSQL, reducing API latency by 35%."
-  }
-  ```
+2. **Stage 2: Explicit Extraction (`skillgraph/extractor.py`)**
+   - Matches candidate statements against a curated dictionary (`skill_dictionary.json`, 68 skills with aliases).
+   - Preserves exact statement-level provenance (recording which sentence evidenced each skill).
 
-### Stage 3: Inference Engine (`skillgraph/inference.py`)
-Identifies which required skills are missing from the resume but likely possessed by the candidate based on related competencies:
-- **Graph Traversal**: Queries the NetworkX directed graph (`skillgraph/skill_graph.json`) for predecessors pointing into the missing skill.
-- **Contextual Semantic Similarity**: Computes the cosine similarity between the candidate's actual source statement and the missing skill name using Sentence-BERT (`all-MiniLM-L6-v2`).
-- **Mathematical Confidence Formula**:
-  $$\text{Confidence} = \left( 0.50 \cdot w_{\text{graph}} + 0.50 \cdot \text{sim}_{\text{SBERT}} \right) \times 100$$
-- **Classification Rules**:
-  - `HIGH_CONFIDENCE` ($\ge 85\%$): Strong graph relationship and semantic evidence.
-  - `NEEDS_VERIFICATION` ($40\% \le \text{Confidence} < 85\%$): Plausible inference requiring human verification.
-  - `SKILL_GAP` ($< 40\%$ or no graph predecessor): Genuine skill deficiency.
-- **Explainable Reasoning**: Produces a plain-English explanation citing the specific resume statement, predecessor skill, edge weight, and cosine similarity.
+3. **Stage 3: Hybrid Inference Engine (`skillgraph/inference.py`)**
+   - Determines which required job skills are absent from explicit resume text.
+   - Finds candidate skills in a directed skill graph (`skill_graph.json`, 64 edges).
+   - Computes dense cosine similarity between the candidate's actual resume statement and the missing skill using a local Sentence-BERT model (`all-MiniLM-L6-v2`).
+   - Blends graph and semantic evidence:
+     $$\text{Confidence} = \left( 0.50 \times w_{\text{graph}} + 0.50 \times \text{sim}_{\text{SBERT}} \right) \times 100$$
+   - Categorizes outcomes into `HIGH_CONFIDENCE` ($>74\%$), `NEEDS_VERIFICATION` ($40\%\text{--}74\%$), or `SKILL_GAP` ($<40\%$).
 
-### Stage 4: Question Generation & Verification (`skillgraph/verifier.py`)
-- **Targeted Generation**: Questions are generated strictly for `NEEDS_VERIFICATION` items (skipping obvious matches and gaps).
-- **Pre-Authored Templates**: Uses deterministic templates (`skillgraph/question_templates.json`) rather than generative LLMs.
-- **Response Mapping**:
-  - *"Implemented it myself"* / *"Hands-on"* $\rightarrow$ **`CONFIRMED`** (Weight: 1.0)
-  - *"Used a library or tool"* / *"Part of a framework"* $\rightarrow$ **`PARTIALLY_CONFIRMED`** (Weight: 0.5)
-  - *"Not sure"* $\rightarrow$ **`SKILL_GAP`** (Weight: 0.0)
+4. **Stage 4: Clarifying Verification (`skillgraph/verifier.py`)**
+   - Generates multiple-choice verification questions for borderline skills (`NEEDS_VERIFICATION`).
+   - Translates user responses into confirmed (`CONFIRMED`), partially confirmed (`PARTIALLY_CONFIRMED`), or unverified gap states.
 
-### Stage 5: Report Compilation & Constrained Rewriting (`skillgraph/reporter.py`)
-- **Weighted Fit Score**:
-  $$\text{Fit Percentage} = \text{round}\left( \frac{N_{\text{explicit}} \cdot 1.0 + N_{\text{confirmed}} \cdot 1.0 + N_{\text{high\_unverified}} \cdot 0.85 + N_{\text{partial}} \cdot 0.5}{N_{\text{total\_required}}} \times 100 \right)$$
-- **Academic Honesty in Rewriting**: Rewrites are performed using deterministic sentence slot-filling anchored directly to the candidate's original resume statement.
-  - Confirmed skills highlight active implementation.
-  - Partially confirmed skills transparently indicate tooling/framework exposure.
-  - Zero hallucination of external metrics, companies, or tools.
-
-### Stage 6: Integration & Web Application (`server.py` & `frontend/`)
-- Connects Stages 1 through 5 into an interactive HTTP API server and React frontend.
-- Provides session isolation, rate limiting, and an educational dark-mode UI with live metric gauges.
-
-### Stage 7: Empirical Evaluation (`run_evaluation.py`)
-- Independent evaluation harness testing the inference engine against `eval_dataset.json` (18 hand-labeled test cases, 60 skill targets).
-- Measures Precision, Recall, F1-Score, and False Positive Rate on genuine gaps.
+5. **Stage 5: Report Generation & Constrained Rewriting (`skillgraph/reporter.py`)**
+   - Calculates candidate match percentage using weighted categories (explicit: 1.0, confirmed: 1.0, high-confidence: 0.85, partial: 0.5).
+   - Produces suggested bullet rewrites using deterministic slot-filling on the candidate's original text, explicitly preventing hallucinated metrics or fabricated employers.
 
 ---
 
-## 📊 Empirical Evaluation Results (Stage 7)
+## ⚖️ Design Decisions: Deterministic Pipeline vs. Generative LLMs
 
-Tested against the hand-labeled benchmark dataset (`eval_dataset.json`):
+SkillGraph deliberately uses a local, deterministic pipeline (graph prior + sentence embeddings + template slot-filling) rather than prompting a large language model. This reflects an engineering trade-off:
 
-| Evaluation Metric | Score | Explanation |
+| Dimension | SkillGraph (Graph + SBERT + Templates) | Commercial Generative LLM |
 | :--- | :--- | :--- |
-| **Total Test Cases** | **18** | Diverse coverage across Backend, Frontend, Data, ML, Cloud/DevOps, Security, and QA. |
-| **Total Skills Evaluated** | **60** | Full set of required competencies evaluated across all scenarios. |
-| **Inference Precision** | **94.1%** | 16 of 17 skills proposed for inference were genuine, justifiable competencies. |
-| **Inference Recall** | **94.1%** | Successfully inferred 16 of 17 implicit competencies expected by human evaluators. |
-| **Inference F1-Score** | **94.1%** | Harmonic mean of precision and recall. |
-| **False Positive Rate on Gaps** | **5.0%** | Only 1 out of 20 genuine gaps was mistakenly flagged for verification. |
-| **Overall Classification Accuracy** | **96.7%** | 58 of 60 skill classifications matched ground truth exactly. |
+| **Data Privacy** | Runs 100% locally on CPU. No resume text or PII leaves the host machine. | Sends resume text, contact details, and proprietary JDs to third-party APIs. |
+| **Reproducibility** | Deterministic outputs. Identical inputs yield identical confidence scores and recommendations. | Non-deterministic sampling; results may drift across model versions or temperatures. |
+| **Inference Cost & Speed** | Runs on commodity hardware in under 2 seconds. Zero API costs. | Recurring API costs per token; latency depends on cloud network and model load. |
+| **Grounding & Provenance** | Every inference cites graph weight, cosine similarity, and original bullet line. Rewrites cannot invent facts. | High fluency, but vulnerable to subtle hallucinations (e.g. inventing team sizes, metrics, or tools). |
+| **Coverage & Flexibility** | Limited to the curated vocabulary (68 skills, 64 edges). Requires manual graph maintenance. | Broad real-world knowledge across arbitrary industries and skills without manual ontology curation. |
+
+SkillGraph does not claim to surpass LLMs in language fluency or broad knowledge; rather, it offers a bounded, privacy-safe, and explainable alternative for domain-constrained screening.
 
 ---
 
-## 🌐 API Reference (Stage 6)
+## 📊 Evaluation & Component Ablation
+
+The system was evaluated against `eval_dataset.json`, a dataset of **18 test cases** comprising **60 labeled skill instances** across software engineering, data, and QA domains, hand-labeled by the author.
+
+To measure the contribution of each component, we performed an ablation comparing:
+- **(a) Explicit Only**: Keyword matching without inference.
+- **(b) Graph-Only**: Graph edge weights only ($w_{\text{graph}} \ge 0.40$), ignoring statement text.
+- **(c) SBERT-Only**: Semantic similarity only ($\text{cosine similarity} \ge 0.25$), ignoring graph edges.
+- **(d) Hybrid (SkillGraph)**: Current system ($0.50 \cdot w_{\text{graph}} + 0.50 \cdot \text{sim}_{\text{SBERT}} \ge 40\%$).
+
+### Empirical Ablation Results
+
+| Method | Precision | Recall | F1-Score | False Positive Rate (Gaps) | Overall Accuracy |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **(a) Explicit Only** | 0.0%* | 0.0% | 0.0% | **0.0%** | 71.7% |
+| **(b) Graph-Only** | 84.2% | **94.1%** | 88.9% | 15.0% | 93.3% |
+| **(c) SBERT-Only** | 80.0% | 70.6% | 75.0% | 15.0% | 86.7% |
+| **(d) Hybrid (SkillGraph)** | **94.1%** | **94.1%** | **94.1%** | **5.0%** | **96.7%** |
+
+*\*Explicit matching does not predict implicit skills, yielding 0 true positives for SHOULD_INFER.*
+
+### Key Observations
+1. **Graph Alone Over-Infers**: While the graph prior captures strong relationships (94.1% recall), it has a 15.0% false-positive rate on gaps because it cannot check whether the resume context actually supports the implied skill.
+2. **SBERT Alone Suffers from Semantic Drift**: Sentence-BERT cosine similarity alone (70.6% recall, 15.0% FPR) lacks domain structure and struggles to distinguish adjacent technologies without graph boundaries.
+3. **Hybrid Complementarity**: Combining the graph prior with SBERT contextual confirmation reduces the gap false-positive rate to **5.0%** (1 error in 20 gaps) while maintaining **94.1% recall and precision**.
+
+See [`evaluation_results.md`](file:///mnt/Data/NLP/project/evaluation_results.md) for individual case breakdowns and detailed metric logs.
+
+---
+
+## ⚠️ Limitations
+
+1. **Small Hand-Curated Graph**: The graph currently contains 68 skills and 64 directed edges. It covers common backend, frontend, data, and cloud technologies, but does not cover niche stacks or broad enterprise domains.
+2. **1-Hop Traversal Only**: The inference engine only evaluates direct predecessors in the graph. It does not perform multi-hop graph traversal (e.g. `spaCy` $\to$ `NLP` $\to$ `Machine Learning` failed in Case 15 because there is no direct `spaCy` $\to$ `Machine Learning` edge).
+3. **Small Self-Labeled Evaluation Set**: The evaluation dataset contains 18 cases and 60 labeled skills created by the author. It serves as an empirical sanity check, not a statistically exhaustive industry benchmark.
+4. **Synthetic Test Data**: The evaluation was performed on clean, synthetic resume statements rather than noisy real-world documents with complex multi-column layouts, OCR artifacts, or non-standard styling.
+5. **English Language Only**: Both the skill gazetteer and the spaCy parsing pipeline (`en_core_web_sm`) are English-only.
+6. **Self-Reporting Verification Dependency**: The accuracy of Stage 5 rewrites depends on honest candidate responses during Stage 4 disambiguation.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Core Runtime**: Python 3.10+
+- **NLP & Embeddings**: spaCy (`en_core_web_sm`), Sentence-Transformers (`all-MiniLM-L6-v2`)
+- **Graph Modeling**: NetworkX (`DiGraph`)
+- **Document Ingestion**: `pdfplumber`, `python-docx`
+- **Backend API**: Flask 3.x, Flask-CORS, Flask-Limiter
+- **Testing**: pytest, GitHub Actions CI
+- **Frontend**: React 19, Vite, Tailwind CSS
+
+---
+
+## 🌐 API Reference
 
 | Method | Endpoint | Request Payload | Description |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/health` | None | Returns API service operational status. |
-| `POST` | `/api/analyze` | Multipart Form: `resume` (file) + `job_description` (text) | Runs Stages 1–3, creates in-memory session, returns matched skills & clarifying questions. |
+| `GET` | `/api/health` | None | Returns API operational status. |
+| `POST` | `/api/analyze` | Multipart Form: `resume` (file, max 5 MB) + `job_description` (text) | Runs Stages 1–3, creates in-memory session, returns matched skills and clarifying questions. |
 | `POST` | `/api/answer` | JSON: `{"session_id": "...", "missing_skill": "...", "selected_option": "..."}` | Updates inference status via Stage 4 and returns remaining question count. |
-| `GET` | `/api/report/<session_id>` | URL Param: `session_id` | Compiles Stage 5 report and returns final fit breakdown and rewrite suggestions. |
-
----
-
-## 📁 Repository File Structure
-
-```
-.
-├── server.py                     # Stage 6: Hardened Flask API Backend
-├── run_evaluation.py             # Stage 7: Evaluation Runner & Metrics Engine
-├── eval_dataset.json             # Stage 7: 18 Hand-Labeled Ground-Truth Test Cases
-├── evaluation_results.md         # Stage 7: Auto-Generated Academic Results Report
-├── requirements.txt              # Backend Dependencies (Python)
-├── samples/
-│   └── sample_resume.docx        # Generated Benchmark Resume (Priya Sharma)
-├── skillgraph/                   # Core Pipeline Package
-│   ├── __init__.py
-│   ├── parser.py                 # Stage 1: Document Ingestion, Security & Segmentation
-│   ├── extractor.py              # Stage 2: Explicit Extraction with Provenance
-│   ├── skill_dictionary.json     # 68 Canonical Skills with Multi-Variant Aliases
-│   ├── inference.py              # Stage 3: NetworkX Graph Traversal & Local SBERT
-│   ├── skill_graph.json          # Directed Skill Relationship Graph (64 Edges)
-│   ├── verifier.py               # Stage 4: Question Generation & Verification
-│   ├── question_templates.json   # Deterministic Clarifying Templates
-│   └── reporter.py               # Stage 5: Fit Score Compilation & Slot-Filled Rewrites
-├── frontend/                     # Stage 6: React + Vite + Tailwind CSS Frontend
-│   ├── index.html                # HTML Entrypoint with Google Fonts
-│   ├── vite.config.js            # Vite Configuration & Backend API Proxy
-│   ├── package.json              # Frontend Dependencies & Scripts
-│   ├── public/
-│   │   └── sample_resume.docx    # 1-Click Evaluation Asset
-│   └── src/
-│       ├── main.jsx              # React DOM Root
-│       ├── index.css             # Tailwind v4 Theme Tokens & Print Styles
-│       └── App.jsx               # Complete 3-Screen Reactive UI
-├── test_stage1.py                # Standalone Test for Stage 1
-├── test_stage2.py                # Standalone Test for Stage 2
-├── test_stage3.py                # Standalone Test for Stage 3
-├── test_stage4.py                # Standalone Test for Stage 4
-├── test_stage5.py                # Standalone Test for Full Pipeline (Stages 1–5)
-└── README.md                     # Comprehensive Project Documentation
-```
+| `GET` | `/api/report/<session_id>` | URL Param: `session_id` | Compiles Stage 5 report and returns match breakdown and rewrite suggestions. |
+| `POST` | `/api/bulk-analyze` | Multipart Form: `resumes` (multiple files) + `job_description` (text) | Sequentially runs multiple resumes and returns ranked candidates. |
 
 ---
 
 ## 🚀 Quick Start Guide
 
 ### 1. Prerequisites
-- **Python**: Version 3.10 or higher.
-- **Node.js**: Version 18 or higher (with `npm`).
-- **Operating System**: Linux, macOS, or Windows (WSL recommended).
+- Python 3.10 or higher
+- Node.js 18+ and npm
 
-### 2. Backend Installation
+### 2. Backend Setup
 
 ```bash
 # Clone the repository
 git clone https://github.com/Ashwin-R05/Skillgraph---NLP.git
 cd Skillgraph---NLP
 
-# Create and activate a Python virtual environment
+# Create and activate virtual environment
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install Python dependencies
+# Install dependencies
+pip install --upgrade pip
 pip install -r requirements.txt
-pip install flask flask-cors flask-limiter
-
-# Download the spaCy English pipeline
 python -m spacy download en_core_web_sm
 ```
 
-### 3. Frontend Installation
+### 3. Frontend Setup
 
 ```bash
 cd frontend
@@ -292,50 +228,30 @@ npm install
 cd ..
 ```
 
-### 4. Running the Complete System (Backend + Frontend)
+### 4. Running the Application
 
-Open two terminal tabs:
+Open two terminals:
 
-**Terminal 1 (Flask API Server):**
+**Terminal 1 (Backend API):**
 ```bash
 source .venv/bin/activate
 python server.py
-# Server starts on http://127.0.0.1:5000
+# Runs on http://127.0.0.1:5000
 ```
 
-**Terminal 2 (React Frontend):**
+**Terminal 2 (Frontend Development Server):**
 ```bash
 cd frontend
 npm run dev
-# Vite dev server starts on http://localhost:5173
+# Runs on http://localhost:5173
 ```
 
-Navigate to **`http://localhost:5173`** in your browser. You can click **"Load Benchmark Resume"** to test the complete workflow in one click!
-
-### 5. Running Standalone CLI Tests
-
-Each pipeline stage includes an independent CLI test script:
+### 5. Running Tests & Evaluation
 
 ```bash
-source .venv/bin/activate
+# Run automated pytest suite
+pytest -v tests/
 
-python test_stage1.py     # Test Stage 1: Document Parsing & Segmentation
-python test_stage2.py     # Test Stage 2: Explicit Skill Extraction
-python test_stage3.py     # Test Stage 3: Inference Engine
-python test_stage4.py     # Test Stage 4: Question Verification
-python test_stage5.py     # Test Full Stage 1 to 5 Chain
-python run_evaluation.py  # Test Stage 7: Empirical Evaluation Suite
+# Run the 4-way ablation evaluation benchmark
+python run_evaluation.py
 ```
-
----
-
-## 🛡️ Academic Integrity & Privacy Principles
-
-1. **Zero External API / LLM Dependencies**:
-   - The entire pipeline runs 100% locally on CPU/GPU. No resume text, candidate names, or confidential job descriptions are ever sent to OpenAI, Anthropic, or external cloud services.
-2. **Guaranteed Explainability**:
-   - Every inferred skill is accompanied by an algebraic breakdown ($w_{\text{edge}}$, $\text{sim}_{\text{SBERT}}$) and cites the exact resume sentence that led to the conclusion.
-3. **No Generative Hallucination**:
-   - Resume bullet revisions use deterministic slot-filling on the candidate's existing statements, preventing the fabrication of unverified accomplishments or metrics.
-4. **Active Disambiguation**:
-   - Inferences between 40% and 85% confidence are not assumed true; they must be verified by the candidate, strictly bounding the false positive rate (5.0%).
