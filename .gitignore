@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / Pytorch / Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Caches and testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Node & Frontend dependencies and builds
+node_modules/
+frontend/node_modules/
+dist/
+build/
+frontend/dist/
+frontend/dist-ssr/
+
+# Environment and sensitive keys
+.env
+*.env
+.env.*
+!.env.example
+
+# Operating System & IDEs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
