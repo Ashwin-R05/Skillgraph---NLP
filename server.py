@@ -514,30 +514,35 @@ def answer_question():
     if len(session_id) > 100 or len(missing_skill) > 100 or len(selected_option) > 200:
         return jsonify({"error": "Field length exceeds allowed limit"}), 400
 
-    if not session_id or session_id not in SESSIONS:
+    if not session_id or not UUID_PATTERN.match(session_id):
         return jsonify({"error": "Invalid or expired session_id"}), 404
 
     if not missing_skill or not selected_option:
         return jsonify({"error": "Missing 'missing_skill' or 'selected_option'"}), 400
 
-    session_data = SESSIONS[session_id]
-    inferences = session_data["inferences"]
+    with _session_lock:
+        if session_id not in SESSIONS:
+            return jsonify({"error": "Invalid or expired session_id"}), 404
 
-    updated = False
-    for i, inf in enumerate(inferences):
-        if inf.get("missing_skill") == missing_skill:
-            inferences[i] = apply_response(inf, selected_option)
-            session_data["answered_skills"].add(missing_skill)
-            updated = True
-            break
+        session_data = SESSIONS[session_id]
+        inferences = session_data["inferences"]
 
-    if not updated:
-        return jsonify({"error": f"Skill '{missing_skill}' not found in active session inferences"}), 400
+        updated = False
+        for i, inf in enumerate(inferences):
+            if inf.get("missing_skill") == missing_skill:
+                inferences[i] = apply_response(inf, selected_option)
+                session_data["answered_skills"].add(missing_skill)
+                session_data["final_report"] = None
+                updated = True
+                break
 
-    # Calculate remaining questions
-    total_questions = len(session_data["questions"])
-    answered_count = len(session_data["answered_skills"])
-    remaining = max(0, total_questions - answered_count)
+        if not updated:
+            return jsonify({"error": f"Skill '{missing_skill}' not found in active session inferences"}), 400
+
+        # Calculate remaining questions
+        total_questions = len(session_data["questions"])
+        answered_count = len(session_data["answered_skills"])
+        remaining = max(0, total_questions - answered_count)
 
     return jsonify({
         "status": "success",
@@ -552,26 +557,30 @@ def get_report(session_id: str):
     """Compiles Stage 5 report and rewrites on the session's current state."""
     cleanup_stale_sessions()
 
-    if not session_id or len(session_id) > 100 or session_id not in SESSIONS:
+    if not session_id or not UUID_PATTERN.match(session_id):
         return jsonify({"error": "Invalid or expired session_id"}), 404
 
-    session_data = SESSIONS[session_id]
+    with _session_lock:
+        if session_id not in SESSIONS:
+            return jsonify({"error": "Invalid or expired session_id"}), 404
 
-    # If already compiled and no changes, return cached report
-    if session_data.get("final_report") and len(session_data["answered_skills"]) == len(session_data["questions"]):
-        return jsonify(session_data["final_report"])
+        session_data = SESSIONS[session_id]
 
-    stage4_output = {
-        "inferences": session_data["inferences"],
-        "explicitly_matched": session_data["explicitly_matched"],
-    }
+        # If already compiled and no changes, return cached report
+        if session_data.get("final_report") and len(session_data["answered_skills"]) == len(session_data["questions"]):
+            return jsonify(session_data["final_report"])
 
-    report = compile_report(stage4_output)
-    rewrites = generate_all_rewrites(report)
-    final_output = build_final_output(report, rewrites)
+        stage4_output = {
+            "inferences": session_data["inferences"],
+            "explicitly_matched": session_data["explicitly_matched"],
+        }
 
-    session_data["final_report"] = final_output
-    return jsonify(final_output)
+        report = compile_report(stage4_output)
+        rewrites = generate_all_rewrites(report)
+        final_output = build_final_output(report, rewrites)
+
+        session_data["final_report"] = final_output
+        return jsonify(final_output)
 
 
 if __name__ == "__main__":

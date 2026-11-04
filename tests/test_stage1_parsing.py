@@ -40,3 +40,16 @@ def test_clean_jd_text(sample_jd_text: str):
     assert "  " not in cleaned
     assert "Senior Backend Engineer" in cleaned
     assert "Requirements" in cleaned
+
+
+def test_reject_invalid_docx_structure(tmp_path: Path):
+    import zipfile
+    import pytest
+
+    # Create a zip file with random contents but no OpenXML document
+    fake_docx = tmp_path / "fake.docx"
+    with zipfile.ZipFile(fake_docx, "w") as zf:
+        zf.writestr("test.txt", "not a real docx")
+
+    with pytest.raises(ValueError, match="OpenXML document structure"):
+        extract_resume_text(fake_docx)

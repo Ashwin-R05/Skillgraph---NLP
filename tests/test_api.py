@@ -113,3 +113,12 @@ def test_api_analyze_valid_resume_and_flow(client, sample_docx: Path, sample_jd_
     # Test /api/report with invalid session_id
     bad_report_resp = client.get("/api/report/nonexistent-session")
     assert bad_report_resp.status_code == 404
+
+
+def test_api_root_endpoint(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["service"] == "SkillGraph API"
+    assert data["status"] == "operational"
+    assert "health" in data
