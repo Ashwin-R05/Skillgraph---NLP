@@ -27,6 +27,7 @@ MAX_PDF_PAGES = 20
 MAX_DOCX_UNCOMPRESSED_BYTES = 25 * 1024 * 1024  # 25 MB max uncompressed
 MAX_DOCX_RATIO = 100  # Max compression ratio
 MAX_JD_CHAR_LENGTH = 50_000
+MAX_RESUME_CHAR_LENGTH = 100_000  # Guard against text bomb / SBERT compute exhaustion
 
 # ---------------------------------------------------------------------------
 # Lazy-loaded spaCy model (loaded once on first call to segment_resume)
@@ -88,6 +89,11 @@ def _verify_docx_safety(path: Path) -> None:
 
         # Inspect zip entries to prevent decompression bombs and zip slip
         with zipfile.ZipFile(path, "r") as zf:
+            namelist = zf.namelist()
+            # Verify standard OpenXML structure to reject arbitrary renamed zip files
+            if not any(name in namelist for name in ("[Content_Types].xml", "word/document.xml")):
+                raise ValueError("Invalid file format: Archive is missing standard OpenXML document structure.")
+
             total_uncompressed = 0
             total_compressed = 0
             for info in zf.infolist():
@@ -121,7 +127,7 @@ def extract_resume_text(file_path: str | Path) -> str:
 
     Raises:
         ValueError: If the file extension is not .pdf or .docx, magic bytes mismatch,
-                    or security limits (zip bomb, page count) are violated.
+                    or security limits (zip bomb, page count, character limit) are violated.
         FileNotFoundError: If the file does not exist.
     """
     path = Path(file_path)
@@ -140,7 +146,11 @@ def extract_resume_text(file_path: str | Path) -> str:
             f"Unsupported file type '{ext}'. Use .pdf or .docx."
         )
 
-    return _clean_raw_text(raw)
+    cleaned = _clean_raw_text(raw)
+    if len(cleaned) > MAX_RESUME_CHAR_LENGTH:
+        raise ValueError(f"Resume text exceeds maximum allowed length ({MAX_RESUME_CHAR_LENGTH} characters).")
+
+    return cleaned
 
 
 def _extract_pdf(path: Path) -> str:

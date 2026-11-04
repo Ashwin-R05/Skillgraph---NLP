@@ -46,6 +46,11 @@ def generate_llm_rewrite(
     if not key:
         return None
 
+    # Defense: restrict API base to secure HTTPS endpoints
+    if not api_base or not api_base.startswith("https://"):
+        logger.warning("Rejected non-HTTPS or invalid api_base: %s", api_base)
+        return None
+
     missing_skill = inference.get("missing_skill", "")
     original_stmt = inference.get("matched_statement", "")
     classification = inference.get("classification", "CONFIRMED")
@@ -90,7 +95,7 @@ def generate_llm_rewrite(
         )
         with urllib.request.urlopen(req, timeout=8) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            content = data["choices"][0]["messages"]["content"].strip()
+            content = data["choices"][0]["message"]["content"].strip()
             return content.strip('"')
     except Exception as exc:
         logger.warning("LLM rewrite failed or unavailable (%s). Using deterministic rewrite.", exc)

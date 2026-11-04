@@ -62,6 +62,9 @@ def load_skill_dictionary(path: str | Path | None = None) -> dict[str, list[str]
 # Internal: build a lookup index from the skill dictionary
 # ---------------------------------------------------------------------------
 
+_synonym_index_cache: dict[int, list[tuple[str, str]]] = {}
+
+
 def _build_synonym_index(
     skill_dictionary: dict[str, list[str]],
 ) -> list[tuple[str, str]]:
@@ -72,7 +75,12 @@ def _build_synonym_index(
     (e.g. "kafka").
 
     Each canonical name is also included as a phrase (lowered).
+    Cached by dictionary object id for high-performance extraction.
     """
+    dict_id = id(skill_dictionary)
+    if dict_id in _synonym_index_cache:
+        return _synonym_index_cache[dict_id]
+
     pairs: list[tuple[str, str]] = []
     for canonical, synonyms in skill_dictionary.items():
         # Add the canonical name itself as a matchable phrase
@@ -82,6 +90,7 @@ def _build_synonym_index(
 
     # Longest first → greedy multi-word match wins
     pairs.sort(key=lambda p: len(p[0]), reverse=True)
+    _synonym_index_cache[dict_id] = pairs
     return pairs
 
 

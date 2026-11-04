@@ -22,11 +22,17 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import tempfile
+import threading
 import time
 import uuid
 from pathlib import Path
 from typing import Any
+
+# Ensure Sentence-Transformers / Hugging Face runs locally offline
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -81,24 +87,30 @@ limiter = Limiter(
 
 # ── Session Store with Expiry / TTL (3600 seconds = 1 hour, max 500 items) ──
 SESSIONS: dict[str, dict[str, Any]] = {}
+_session_lock = threading.Lock()
 SESSION_TTL_SECONDS: int = 3600
 MAX_SESSIONS: int = 500
+UUID_PATTERN = re.compile(r"^[0-9a-fA-F-]{32,36}$")
 
 
 def cleanup_stale_sessions() -> None:
     """Evict expired sessions or prune if count exceeds MAX_SESSIONS."""
-    now = time.time()
-    expired = [
-        sid for sid, data in SESSIONS.items()
-        if now - data.get("created_at", now) > SESSION_TTL_SECONDS
-    ]
-    for sid in expired:
-        del SESSIONS[sid]
+    with _session_lock:
+        now = time.time()
+        expired = [
+            sid for sid, data in list(SESSIONS.items())
+            if now - data.get("created_at", now) > SESSION_TTL_SECONDS
+        ]
+        for sid in expired:
+            SESSIONS.pop(sid, None)
 
-    # Enforce hard capacity bound
-    while len(SESSIONS) > MAX_SESSIONS:
-        oldest_sid = next(iter(SESSIONS))
-        del SESSIONS[oldest_sid]
+        # Enforce hard capacity bound
+        while len(SESSIONS) > MAX_SESSIONS:
+            try:
+                oldest_sid = next(iter(SESSIONS))
+                SESSIONS.pop(oldest_sid, None)
+            except StopIteration:
+                break
 
 
 # Preload static assets/models at server startup
@@ -143,6 +155,18 @@ def add_security_headers(response):
     response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     return response
+
+
+@app.route("/", methods=["GET"])
+def index():
+    """Root endpoint for status discovery."""
+    return jsonify({
+        "service": "SkillGraph API",
+        "status": "operational",
+        "health": "/api/health",
+        "documentation": "https://github.com/Ashwin-R05/Skillgraph---NLP",
+        "ui": "http://localhost:5173",
+    })
 
 
 @app.route("/api/health", methods=["GET"])
@@ -244,7 +268,8 @@ def analyze():
             rewrites = generate_all_rewrites(report)
             session_data["final_report"] = build_final_output(report, rewrites)
 
-        SESSIONS[session_id] = session_data
+        with _session_lock:
+            SESSIONS[session_id] = session_data
 
         response_payload = {
             "session_id": session_id,
@@ -389,17 +414,18 @@ def bulk_analyze():
 
             # Store in session store for deep-dive inspection
             session_id = str(uuid.uuid4())
-            SESSIONS[session_id] = {
-                "session_id": session_id,
-                "created_at": time.time(),
-                "statements": statements,
-                "jd_clean": jd_clean,
-                "explicitly_matched": explicitly_matched,
-                "inferences": inferences,
-                "questions": [],
-                "answered_skills": set(),
-                "final_report": final_output,
-            }
+            with _session_lock:
+                SESSIONS[session_id] = {
+                    "session_id": session_id,
+                    "created_at": time.time(),
+                    "statements": statements,
+                    "jd_clean": jd_clean,
+                    "explicitly_matched": explicitly_matched,
+                    "inferences": inferences,
+                    "questions": [],
+                    "answered_skills": set(),
+                    "final_report": final_output,
+                }
 
             high_conf_skills = [
                 inf.get("missing_skill", "")
@@ -431,7 +457,7 @@ def bulk_analyze():
                 "filename": raw_filename,
                 "candidate_name": Path(raw_filename).stem.replace("_", " ").title(),
                 "status": "error",
-                "error": f"Failed to analyze: {str(e)}",
+                "error": "Failed to parse or analyze resume. Ensure the file is not corrupted or password-protected.",
                 "fit_percentage": 0,
             })
         finally:
